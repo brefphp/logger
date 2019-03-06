@@ -27,6 +27,8 @@ The logger does not require any configuration:
 $logger = new \Bref\Logger\StderrLogger();
 ```
 
+By default messages **above the `warning` level** will be logged, the rest will be discarded.
+
 It is possible to log using any [PSR-3 log level](https://www.php-fig.org/psr/psr-3/#5-psrlogloglevel), the most common ones being:
 
 ```php
@@ -37,11 +39,11 @@ $logger->error('This is an error');
 ```
 
 ```
-[DEBUG] This is a debug message
-[INFO] This is an info
 [WARNING] This is a warning
 [ERROR] This is an error
 ```
+
+Messages under `warning` are not logged.
 
 ### Message placeholders
 
@@ -78,4 +80,14 @@ InvalidArgumentException: Impossible to complete the action in /var/task/index.p
 Stack trace:
 #0 /var/task/index.php(86): main()
 ...
+```
+
+### Log level
+
+It is possible to change the level above which messages are logged.
+
+For example to log all messages:
+
+```php
+$logger = new \Bref\Logger\StderrLogger(\Psr\Log\LogLevel::DEBUG);
 ```

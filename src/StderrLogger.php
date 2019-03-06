@@ -3,12 +3,27 @@
 namespace Bref\Logger;
 
 use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
 
 /**
  * PSR-3 logger that logs into stderr.
  */
 class StderrLogger extends AbstractLogger
 {
+    private const LOG_LEVEL_MAP = [
+        LogLevel::EMERGENCY => 8,
+        LogLevel::ALERT => 7,
+        LogLevel::CRITICAL => 6,
+        LogLevel::ERROR => 5,
+        LogLevel::WARNING => 4,
+        LogLevel::NOTICE => 3,
+        LogLevel::INFO => 2,
+        LogLevel::DEBUG => 1,
+    ];
+
+    /** @var string */
+    private $logLevel;
+
     /** @var string|null */
     private $url;
 
@@ -16,10 +31,13 @@ class StderrLogger extends AbstractLogger
     private $stream;
 
     /**
+     * @param string $logLevel The log level above which messages will be logged. Messages under this log level will be ignored.
      * @param resource|string $stream If unsure leave the default value.
      */
-    public function __construct($stream = 'php://stderr')
+    public function __construct(string $logLevel = LogLevel::WARNING, $stream = 'php://stderr')
     {
+        $this->logLevel = $logLevel;
+
         if (is_resource($stream)) {
             $this->stream = $stream;
         } elseif (is_string($stream)) {
@@ -34,6 +52,10 @@ class StderrLogger extends AbstractLogger
      */
     public function log($level, $message, array $context = []): void
     {
+        if (self::LOG_LEVEL_MAP[$level] < self::LOG_LEVEL_MAP[$this->logLevel]) {
+            return;
+        }
+
         $this->openStderr();
 
         $message = $this->interpolate($message, $context);

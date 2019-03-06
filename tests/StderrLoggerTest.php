@@ -4,6 +4,7 @@ namespace Bref\Logger\Test;
 
 use Bref\Logger\StderrLogger;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LogLevel;
 
 class StderrLoggerTest extends TestCase
 {
@@ -17,7 +18,7 @@ class StderrLoggerTest extends TestCase
         parent::setUp();
 
         $this->stream = fopen('php://memory', 'a+');
-        $this->logger = new StderrLogger($this->stream);
+        $this->logger = new StderrLogger(LogLevel::DEBUG, $this->stream);
     }
 
     public function test log messages to stderr()
@@ -43,6 +44,29 @@ class StderrLoggerTest extends TestCase
 
 LOGS
 );
+    }
+
+    public function test logs above the configured log level()
+    {
+        $this->logger = new StderrLogger(LogLevel::WARNING, $this->stream);
+        $this->logger->debug('Debug');
+        $this->logger->info('Info');
+        $this->logger->notice('Notice');
+        $this->logger->warning('Alert');
+        $this->logger->error('Error');
+        $this->logger->critical('Critical');
+        $this->logger->alert('Alert');
+        $this->logger->emergency('Emergency');
+
+        $this->assertLogs(<<<'LOGS'
+[WARNING] Alert
+[ERROR] Error
+[CRITICAL] Critical
+[ALERT] Alert
+[EMERGENCY] Emergency
+
+LOGS
+        );
     }
 
     /**
@@ -89,11 +113,12 @@ LOGS
         ]);
 
         $currentFile = __FILE__;
-        $this->assertLogsStartWith(<<<LOGS
+        $this->assertLogsMatch(<<<LOGS
 [INFO] Exception
-InvalidArgumentException: This is an exception message in $currentFile:115
+InvalidArgumentException: This is an exception message in $currentFile:%d
 Stack trace:
-#0 $currentFile(88): Bref\Logger\Test\StderrLoggerTest->createTestException()
+#0 $currentFile(%d): Bref\Logger\Test\StderrLoggerTest->createTestException()
+#1 %a
 LOGS
         );
     }
@@ -104,10 +129,10 @@ LOGS
         self::assertSame($expectedLog, fread($this->stream, fstat($this->stream)['size']));
     }
 
-    private function assertLogsStartWith(string $expectedLog): void
+    private function assertLogsMatch(string $expectedLog): void
     {
         rewind($this->stream);
-        self::assertStringStartsWith($expectedLog, fread($this->stream, fstat($this->stream)['size']));
+        self::assertStringMatchesFormat($expectedLog, fread($this->stream, fstat($this->stream)['size']));
     }
 
     private function createTestException(): \InvalidArgumentException
