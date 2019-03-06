@@ -21,28 +21,44 @@ composer require bref/logger
 
 ## Usage
 
+The logger does not require any configuration:
+
 ```php
-<?php
-
 $logger = new \Bref\Logger\StderrLogger();
+```
 
+It is possible to log using any [PSR-3 log level](https://www.php-fig.org/psr/psr-3/#5-psrlogloglevel), the most common ones being:
 
-// Standard PSR-3 log levels:
-$logger->info('This is a log message');
-// [INFO] This is a log message
+```php
+$logger->debug('This is a debug message');
+$logger->info('This is an info');
+$logger->warning('This is a warning');
 $logger->error('This is an error');
-// [ERROR] This is an error
-// etc.
+```
 
+```
+[DEBUG] This is a debug message
+[INFO] This is an info
+[WARNING] This is a warning
+[ERROR] This is an error
+```
 
-// Using PSR-3 placeholders:
+[PSR-3 placeholders](https://www.php-fig.org/psr/psr-3/#12-message) can be used to insert information into a message without having to concatenate strings manually:
+
+```php
 $logger->warning('Invalid login attempt for email {email}', [
     'email' => $email,
 ]);
 // [WARNING] Invalid login attempt for email johndoe@example.com
+```
 
+```
+[WARNING] Invalid login attempt for email johndoe@example.com
+```
 
-// Logging exceptions under the 'exception' key (as defined in PSR-3)
+Exceptions [can be logged](https://www.php-fig.org/psr/psr-3/#13-context) under the `exception` key:
+
+```php
 try {
    // ...
 } catch (\Exception $e) {
@@ -50,9 +66,12 @@ try {
         'exception' => $e,
     ]);
 }
-// [ERROR] Impossible to complete the action
-// InvalidArgumentException: Impossible to complete the action in /var/task/index.php:12
-// Stack trace:
-// #0 /var/task/index.php(86): main()
-// ...
+```
+
+```
+[ERROR] Impossible to complete the action
+InvalidArgumentException: Impossible to complete the action in /var/task/index.php:12
+Stack trace:
+#0 /var/task/index.php(86): main()
+...
 ```
