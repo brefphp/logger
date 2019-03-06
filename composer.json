@@ -1,8 +1,7 @@
 {
     "name": "bref/logger",
-    "description": "Give it a nice description!",
-    "keywords": [],
-    "homepage": "http://example.com",
+    "description": "All you need to log with Bref on AWS Lambda",
+    "keywords": ["logger", "psr-3", "bref", "lambda", "aws-lambda", "cloudwatch"],
     "license": "MIT",
     "type": "library",
     "autoload": {
