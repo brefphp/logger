@@ -1,0 +1,29 @@
+{
+    "name": "bref/logger",
+    "description": "Give it a nice description!",
+    "keywords": [],
+    "homepage": "http://example.com",
+    "license": "MIT",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Bref\\Logger\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bref\\Logger\\Test\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^7.2",
+        "ext-json": "*",
+        "psr/log": "^1.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.0",
+        "mnapoli/hard-mode": "^0.1.1",
+        "mnapoli/pretty": "^1.0",
+        "phpstan/phpstan": "^0.11.2"
+    }
+}
