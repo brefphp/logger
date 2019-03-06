@@ -25,18 +25,20 @@ class StderrLoggerTest extends TestCase
         $this->logger->debug('Debug');
         $this->logger->info('Info');
         $this->logger->notice('Notice');
-        $this->logger->alert('Alert');
+        $this->logger->warning('Alert');
         $this->logger->error('Error');
         $this->logger->critical('Critical');
+        $this->logger->alert('Alert');
         $this->logger->emergency('Emergency');
 
         $this->assertLogs(<<<'LOGS'
 [DEBUG] Debug
 [INFO] Info
 [NOTICE] Notice
-[ALERT] Alert
+[WARNING] Alert
 [ERROR] Error
 [CRITICAL] Critical
+[ALERT] Alert
 [EMERGENCY] Emergency
 
 LOGS
@@ -89,9 +91,9 @@ LOGS
         $currentFile = __FILE__;
         $this->assertLogsStartWith(<<<LOGS
 [INFO] Exception
-InvalidArgumentException: This is an exception message in $currentFile:113
+InvalidArgumentException: This is an exception message in $currentFile:115
 Stack trace:
-#0 $currentFile(86): Bref\Logger\Test\StderrLoggerTest->createTestException()
+#0 $currentFile(88): Bref\Logger\Test\StderrLoggerTest->createTestException()
 LOGS
         );
     }
