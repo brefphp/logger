@@ -53,7 +53,6 @@ Messages under `warning` are not logged.
 $logger->warning('Invalid login attempt for email {email}', [
     'email' => $email,
 ]);
-// [WARNING] Invalid login attempt for email johndoe@example.com
 ```
 
 ```
