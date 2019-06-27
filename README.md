@@ -1,7 +1,7 @@
 All you need to log with [Bref](https://bref.sh) on AWS Lambda.
 
 [![Build Status](https://img.shields.io/travis/brefphp/logger/master.svg?style=flat-square)](https://travis-ci.com/brefphp/logger)
-[![Latest Version](https://img.shields.io/github/release/bref/logger.svg?style=flat-square)](https://packagist.org/packages/bref/logger)
+[![Latest Version](https://img.shields.io/github/release/brefphp/logger.svg?style=flat-square)](https://packagist.org/packages/bref/logger)
 
 Bref/Logger is a lightweight [PSR-3](https://www.php-fig.org/psr/psr-3/) logger for AWS Lambda. Messages are sent to `stderr` so that they end up in [CloudWatch](https://bref.sh/docs/environment/logs.html).
 
