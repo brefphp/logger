@@ -58,7 +58,11 @@ class StderrLogger extends AbstractLogger
 
         $this->openStderr();
 
-        $message = $this->interpolate($message, $context);
+        if (is_string($message)) {
+            $message = $this->interpolate($message, $context);
+        } else {
+            $message = json_encode($message);
+        }
 
         $message = sprintf("[%s] %s\n", strtoupper($level), $message);
 
