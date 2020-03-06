@@ -43,7 +43,7 @@ class StderrLoggerTest extends TestCase
 [EMERGENCY] Emergency
 
 LOGS
-);
+        );
     }
 
     public function test logs above the configured log level()
