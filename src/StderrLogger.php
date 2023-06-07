@@ -115,13 +115,6 @@ class StderrLogger extends AbstractLogger
 
     private function logException(\Throwable $exception): void
     {
-        fwrite($this->stream, sprintf(
-            "%s: %s in %s:%d\nStack trace:\n%s\n",
-            get_class($exception),
-            $exception->getMessage(),
-            $exception->getFile(),
-            $exception->getLine(),
-            $exception->getTraceAsString()
-        ));
+        fwrite($this->stream, $exception->__toString());
     }
 }
