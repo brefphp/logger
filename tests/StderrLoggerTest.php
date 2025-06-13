@@ -3,6 +3,7 @@
 namespace Bref\Logger\Test;
 
 use Bref\Logger\StderrLogger;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LogLevel;
 
@@ -74,7 +75,7 @@ LOGS
      *
      * @dataProvider provideInterpolationExamples
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('provideInterpolationExamples')]
+    #[DataProvider('provideInterpolationExamples')]
     public function test log messages are interpolated($contextValue, string $expectedMessage)
     {
         $this->logger->info('{foo}', [
@@ -88,7 +89,7 @@ LOGS
         );
     }
 
-    public function provideInterpolationExamples(): array
+    public static function provideInterpolationExamples(): array
     {
         $date = new \DateTime;
         return [
