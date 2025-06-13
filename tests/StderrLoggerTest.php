@@ -72,8 +72,6 @@ LOGS
 
     /**
      * @param mixed $contextValue
-     *
-     * @dataProvider provideInterpolationExamples
      */
     #[DataProvider('provideInterpolationExamples')]
     public function test log messages are interpolated($contextValue, string $expectedMessage)
