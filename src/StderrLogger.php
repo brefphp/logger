@@ -76,16 +76,11 @@ class StderrLogger extends AbstractLogger
             unset($context['exception']);
         }
 
-        if (!empty($context)) {
+        if (! empty($context)) {
             $data['context'] = $context;
         }
 
-        // Format the log entry
-        $formattedMessage = sprintf("%s\t%s\t%s\n", 
-            strtoupper($level), 
-            $displayMessage, 
-            $this->toJson($this->normalize($data))
-        );
+        $formattedMessage = sprintf("%s\t%s\t%s\n", strtoupper($level), $displayMessage, $this->toJson($this->normalize($data)));
 
         fwrite($this->stream, $formattedMessage);
     }
@@ -127,7 +122,6 @@ class StderrLogger extends AbstractLogger
 
         return strtr($message, $replacements);
     }
-
 
     /**
      * Normalizes data for JSON serialization.
