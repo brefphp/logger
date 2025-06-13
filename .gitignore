@@ -1,5 +1,5 @@
 /vendor/
 /composer.phar
 /composer.lock
-/demo
-.phpunit.result.cache
+/.phpunit.result.cache
+/.phpunit.cache

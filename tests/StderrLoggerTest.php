@@ -74,6 +74,7 @@ LOGS
      *
      * @dataProvider provideInterpolationExamples
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('provideInterpolationExamples')]
     public function test log messages are interpolated($contextValue, string $expectedMessage)
     {
         $this->logger->info('{foo}', [
