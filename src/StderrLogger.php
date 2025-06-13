@@ -35,7 +35,7 @@ class StderrLogger extends AbstractLogger
      * @param string $logLevel The log level above which messages will be logged. Messages under this log level will be ignored.
      * @param resource|string $stream If unsure leave the default value.
      */
-    public function __construct(string $logLevel = LogLevel::WARNING, $stream = 'php://stderr')
+    public function __construct(string $logLevel = LogLevel::INFO, $stream = 'php://stderr')
     {
         $this->logLevel = $logLevel;
 
