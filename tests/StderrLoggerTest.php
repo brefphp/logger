@@ -22,7 +22,7 @@ class StderrLoggerTest extends TestCase
         $this->logger = new StderrLogger(LogLevel::DEBUG, $this->stream);
     }
 
-    public function test log messages to stderr()
+    public function test_log_messages_format()
     {
         $this->logger->debug('Debug');
         $this->logger->info('Info');
@@ -33,21 +33,21 @@ class StderrLoggerTest extends TestCase
         $this->logger->alert('Alert');
         $this->logger->emergency('Emergency');
 
-        $this->assertLogs(<<<'LOGS'
-[DEBUG] Debug
-[INFO] Info
-[NOTICE] Notice
-[WARNING] Alert
-[ERROR] Error
-[CRITICAL] Critical
-[ALERT] Alert
-[EMERGENCY] Emergency
+        $this->assertLogsMatch(<<<'LOGS'
+DEBUG	Debug	{"message":"Debug","level":"DEBUG"}
+INFO	Info	{"message":"Info","level":"INFO"}
+NOTICE	Notice	{"message":"Notice","level":"NOTICE"}
+WARNING	Alert	{"message":"Alert","level":"WARNING"}
+ERROR	Error	{"message":"Error","level":"ERROR"}
+CRITICAL	Critical	{"message":"Critical","level":"CRITICAL"}
+ALERT	Alert	{"message":"Alert","level":"ALERT"}
+EMERGENCY	Emergency	{"message":"Emergency","level":"EMERGENCY"}
 
 LOGS
         );
     }
 
-    public function test logs above the configured log level()
+    public function test_logs_above_the_configured_log_level()
     {
         $this->logger = new StderrLogger(LogLevel::WARNING, $this->stream);
         $this->logger->debug('Debug');
@@ -59,12 +59,12 @@ LOGS
         $this->logger->alert('Alert');
         $this->logger->emergency('Emergency');
 
-        $this->assertLogs(<<<'LOGS'
-[WARNING] Alert
-[ERROR] Error
-[CRITICAL] Critical
-[ALERT] Alert
-[EMERGENCY] Emergency
+        $this->assertLogsMatch(<<<'LOGS'
+WARNING	Alert	{"message":"Alert","level":"WARNING"}
+ERROR	Error	{"message":"Error","level":"ERROR"}
+CRITICAL	Critical	{"message":"Critical","level":"CRITICAL"}
+ALERT	Alert	{"message":"Alert","level":"ALERT"}
+EMERGENCY	Emergency	{"message":"Emergency","level":"EMERGENCY"}
 
 LOGS
         );
@@ -74,17 +74,14 @@ LOGS
      * @param mixed $contextValue
      */
     #[DataProvider('provideInterpolationExamples')]
-    public function test log messages are interpolated($contextValue, string $expectedMessage)
+    public function test_log_messages_are_interpolated($contextValue, string $expectedMessage)
     {
         $this->logger->info('{foo}', [
             'foo' => $contextValue,
         ]);
 
-        $this->assertLogs(<<<LOGS
-[INFO] $expectedMessage
-
-LOGS
-        );
+        $logs = $this->getLogs();
+        $this->assertStringStartsWith('INFO	' . $expectedMessage . '	', $logs);
     }
 
     public static function provideInterpolationExamples(): array
@@ -106,27 +103,37 @@ LOGS
         ];
     }
 
-    public function test exceptions are logged()
+    public function test_logs_with_context()
     {
-        $this->logger->info('Exception', [
-            'exception' => $this->createTestException(),
-        ]);
+        $this->logger->info('Test message', ['key' => 'value']);
 
-        $currentFile = __FILE__;
-        $this->assertLogsMatch(<<<LOGS
-[INFO] Exception
-InvalidArgumentException: This is an exception message in $currentFile:%d
-Stack trace:
-#0 $currentFile(%d): Bref\Logger\Test\StderrLoggerTest->createTestException()
-#1 %a
+        $this->assertLogsMatch(<<<'LOGS'
+INFO	Test message	{"message":"Test message","level":"INFO","context":{"key":"value"}}
+
 LOGS
         );
     }
 
-    private function assertLogs(string $expectedLog): void
+    public function test_multiline_message()
     {
-        rewind($this->stream);
-        self::assertSame($expectedLog, fread($this->stream, fstat($this->stream)['size']));
+        $this->logger->error("Test\nmessage");
+
+        $this->assertLogsMatch(<<<'LOGS'
+ERROR	Test message	{"message":"Test\nmessage","level":"ERROR"}
+
+LOGS
+        );
+    }
+
+    public function test_with_exception()
+    {
+        $e = new \Exception('Test error');
+        $this->logger->info('Test message', ['exception' => $e]);
+
+        $logs = $this->getLogs();
+        $this->assertStringStartsWith('INFO	Test message	{"message":"Test message","level":"INFO","exception":', $logs);
+        $this->assertStringContainsString('"class":"Exception"', $logs);
+        $this->assertStringContainsString('"message":"Test error"', $logs);
     }
 
     private function assertLogsMatch(string $expectedLog): void
@@ -135,8 +142,9 @@ LOGS
         self::assertStringMatchesFormat($expectedLog, fread($this->stream, fstat($this->stream)['size']));
     }
 
-    private function createTestException(): \InvalidArgumentException
+    private function getLogs(): string
     {
-        return new \InvalidArgumentException('This is an exception message');
+        rewind($this->stream);
+        return stream_get_contents($this->stream);
     }
 }
