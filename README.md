@@ -24,7 +24,7 @@ The logger does not require any configuration:
 $logger = new \Bref\Logger\StderrLogger();
 ```
 
-By default messages **above the `warning` level** will be logged, the rest will be discarded.
+By default, messages **above the `info` level** will be logged, the rest will be discarded.
 
 It is possible to log using any [PSR-3 log level](https://www.php-fig.org/psr/psr-3/#5-psrlogloglevel), the most common ones being:
 
@@ -36,11 +36,12 @@ $logger->error('This is an error');
 ```
 
 ```
-[WARNING] This is a warning
-[ERROR] This is an error
+INFO	This is an info	{"message":"This is an info","level":"INFO"}
+WARNING	This is a warning	{"message":"This is a warning","level":"WARNING"}
+ERROR	This is an error	{"message":"This is an error","level":"ERROR"}
 ```
 
-Messages under `warning` are not logged.
+Messages under `info` are not logged.
 
 ### Message placeholders
 
@@ -53,7 +54,7 @@ $logger->warning('Invalid login attempt for email {email}', [
 ```
 
 ```
-[WARNING] Invalid login attempt for email johndoe@example.com
+WARNING	Invalid login attempt for email johndoe@example.com	{"message":"Invalid login attempt for email johndoe@example.com","level":"WARNING","context":{"email":"johndoe@example.com"}}
 ```
 
 ### Logging exceptions
@@ -71,11 +72,7 @@ try {
 ```
 
 ```
-[ERROR] Impossible to complete the action
-InvalidArgumentException: Impossible to complete the action in /var/task/index.php:12
-Stack trace:
-#0 /var/task/index.php(86): main()
-...
+ERROR	Impossible to complete the action	{"message":"Impossible to complete the action","level":"ERROR","exception":{"class":"InvalidArgumentException","message":"Impossible to complete the action","code":0,"file":"/var/task/index.php","line":12,"trace":[{"file":"/var/task/index.php","line":86,"function":"main"}]}
 ```
 
 ### Log level
