@@ -4,6 +4,7 @@ namespace Bref\Logger;
 
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
+use Throwable;
 
 /**
  * PSR-3 logger that logs into stderr.
@@ -34,7 +35,7 @@ class StderrLogger extends AbstractLogger
      * @param string $logLevel The log level above which messages will be logged. Messages under this log level will be ignored.
      * @param resource|string $stream If unsure leave the default value.
      */
-    public function __construct(string $logLevel = LogLevel::WARNING, $stream = 'php://stderr')
+    public function __construct(string $logLevel = LogLevel::INFO, $stream = 'php://stderr')
     {
         $this->logLevel = $logLevel;
 
@@ -60,19 +61,28 @@ class StderrLogger extends AbstractLogger
 
         $message = $this->interpolate($message, $context);
 
-        $message = sprintf("[%s] %s\n", strtoupper($level), $message);
+        // Make sure everything is kept on one line to count as one record
+        $displayMessage = str_replace(["\r\n", "\r", "\n"], ' ', $message);
 
-        fwrite($this->stream, $message);
+        // Prepare data for JSON
+        $data = [
+            'message' => $message,
+            'level' => strtoupper($level),
+        ];
 
-        /**
-         * If an Exception object is passed in the context data, it MUST be in the 'exception' key.
-         * Logging exceptions is a common pattern and this allows implementors to extract a stack trace
-         * from the exception when the log backend supports it. Implementors MUST still verify that
-         * the 'exception' key is actually an Exception before using it as such, as it MAY contain anything.
-         */
-        if (isset($context['exception']) && $context['exception'] instanceof \Throwable) {
-            $this->logException($context['exception']);
+        // Move any exception to the root
+        if (isset($context['exception']) && $context['exception'] instanceof Throwable) {
+            $data['exception'] = $context['exception'];
+            unset($context['exception']);
         }
+
+        if (! empty($context)) {
+            $data['context'] = $context;
+        }
+
+        $formattedMessage = sprintf("%s\t%s\t%s\n", strtoupper($level), $displayMessage, $this->toJson($this->normalize($data)));
+
+        fwrite($this->stream, $formattedMessage);
     }
 
     private function openStderr(): void
@@ -113,15 +123,99 @@ class StderrLogger extends AbstractLogger
         return strtr($message, $replacements);
     }
 
-    private function logException(\Throwable $exception): void
+    /**
+     * Normalizes data for JSON serialization.
+     *
+     * @param mixed $data
+     * @param int $depth Current recursion depth
+     * @return mixed
+     */
+    private function normalize($data, int $depth = 0)
     {
-        fwrite($this->stream, sprintf(
-            "%s: %s in %s:%d\nStack trace:\n%s\n",
-            get_class($exception),
-            $exception->getMessage(),
-            $exception->getFile(),
-            $exception->getLine(),
-            $exception->getTraceAsString()
-        ));
+        $maxDepth = 9; // Similar to NormalizerFormatter's default
+        $maxItems = 1000; // Similar to NormalizerFormatter's default
+
+        if ($depth > $maxDepth) {
+            return 'Over ' . $maxDepth . ' levels deep, aborting normalization';
+        }
+
+        if (is_array($data)) {
+            $normalized = [];
+
+            $count = 1;
+            foreach ($data as $key => $value) {
+                if ($count++ > $maxItems) {
+                    $normalized['...'] = 'Over ' . $maxItems . ' items (' . count($data) . ' total), aborting normalization';
+                    break;
+                }
+
+                $normalized[$key] = $this->normalize($value, $depth + 1);
+            }
+
+            return $normalized;
+        }
+
+        if (is_object($data)) {
+            if ($data instanceof \DateTimeInterface) {
+                return $data->format(\DateTime::RFC3339);
+            }
+
+            if ($data instanceof Throwable) {
+                return $this->normalizeException($data, $depth);
+            }
+
+            if ($data instanceof \JsonSerializable) {
+                return $data;
+            }
+
+            if (method_exists($data, '__toString')) {
+                return $data->__toString();
+            }
+
+            if (get_class($data) === '__PHP_Incomplete_Class') {
+                return new \ArrayObject($data);
+            }
+
+            return $data;
+        }
+
+        if (is_resource($data)) {
+            return '{resource}';
+        }
+
+        return $data;
+    }
+
+    /**
+     * Normalizes an exception for JSON serialization.
+     */
+    private function normalizeException(Throwable $e, int $depth = 0): array
+    {
+        $maxDepth = 9;
+
+        if ($depth > $maxDepth) {
+            return ['class' => get_class($e), 'message' => 'Over ' . $maxDepth . ' levels deep, aborting normalization'];
+        }
+
+        $data = [
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+            'code' => $e->getCode(),
+            'file' => $e->getFile() . ':' . $e->getLine(),
+        ];
+
+        if ($e->getPrevious() instanceof Throwable) {
+            $data['previous'] = $this->normalizeException($e->getPrevious(), $depth + 1);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param mixed $data
+     */
+    private function toJson($data): string
+    {
+        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
     }
 }
