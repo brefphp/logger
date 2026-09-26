@@ -15,14 +15,14 @@
         }
     },
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.2",
         "ext-json": "*",
         "psr/log": "^1.1 | ^2.0 | ^3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5|^11|^12",
+        "phpunit/phpunit": "^11.5|^12|^13",
         "mnapoli/hard-mode": "^0.3",
-        "phpstan/phpstan": "^1"
+        "phpstan/phpstan": "^2"
     },
     "config": {
         "allow-plugins": {
