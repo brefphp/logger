@@ -1,10 +1,10 @@
 All you need to log with [Bref](https://bref.sh) on AWS Lambda.
 
-Bref/Logger is a lightweight [PSR-3](https://www.php-fig.org/psr/psr-3/) logger for AWS Lambda. Messages are sent to `stderr` so that they end up in [CloudWatch](https://bref.sh/docs/environment/logs.html).
+Bref/Logger is a lightweight [PSR-3](https://www.php-fig.org/psr/psr-3/) logger for AWS Lambda. Messages are sent to `stderr` so that they end up in [CloudWatch](https://bref.sh/docs/environment/logs).
 
 ## Why?
 
-As explained in [the Bref documentation](https://bref.sh/docs/environment/logs.html), logging in AWS Lambda means logging to `stderr`. Logs written to `stderr` are automatically sent to [CloudWatch](https://aws.amazon.com/cloudwatch/), AWS' solution to collect and view logs.
+As explained in [the Bref documentation](https://bref.sh/docs/environment/logs), logging in AWS Lambda means logging to `stderr`. Logs written to `stderr` are automatically sent to [CloudWatch](https://aws.amazon.com/cloudwatch/), AWS' solution to collect and view logs.
 
 While classic loggers like [Monolog](https://github.com/Seldaek/monolog) work fine, this logger comes as a simpler and lighter alternative optimized for AWS Lambda. It does not require any configuration and currently contains a single class.
 

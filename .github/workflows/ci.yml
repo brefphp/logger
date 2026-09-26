@@ -14,26 +14,26 @@ jobs:
         timeout-minutes: 15
         strategy:
             matrix:
-                php: [ '8.1', '8.2', '8.3', '8.4' ]
+                php: [ '8.2', '8.3', '8.4', '8.5' ]
                 dependency-version: [ '' ]
                 include:
-                    -   php: '8.1'
+                    -   php: '8.2'
                         dependency-version: '--prefer-lowest'
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@v7
             -   name: Setup PHP
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: ${{ matrix.php }}
                     coverage: none
             -   name: Cache Composer dependencies
-                uses: actions/cache@v4
+                uses: actions/cache@v6
                 with:
                     path: ~/.composer/cache
                     key: php-${{ matrix.php }}-composer-locked-${{ hashFiles('composer.lock') }}
                     restore-keys: php-${{ matrix.php }}-composer-locked-
             -   name: Install PHP dependencies
-                run: composer update ${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-progress --no-suggest
+                run: composer update ${{ matrix.dependency-version }} --prefer-dist --no-interaction --no-progress
             -   name: PHPUnit
                 run: vendor/bin/phpunit
 
@@ -41,21 +41,21 @@ jobs:
         name: Coding standards
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v4
+            -   uses: actions/checkout@v7
             -   name: Setup PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: 8.3
+                    php-version: 8.5
                     tools: cs2pr
                     coverage: none
             -   name: Cache Composer dependencies
-                uses: actions/cache@v4
+                uses: actions/cache@v6
                 with:
                     path: ~/.composer/cache
                     key: php-composer-locked-${{ hashFiles('composer.lock') }}
                     restore-keys: php-composer-locked-
             -   name: Install PHP dependencies
-                run: composer install --no-interaction --no-progress --no-suggest
+                run: composer install --no-interaction --no-progress
             -   name: PHP CS
                 run: vendor/bin/phpcs -q --no-colors --report=checkstyle | cs2pr
             -   name: PHPStan

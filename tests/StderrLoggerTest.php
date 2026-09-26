@@ -5,24 +5,30 @@ namespace Bref\Logger\Test;
 use Bref\Logger\StderrLogger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\InvalidArgumentException;
 use Psr\Log\LogLevel;
+use RuntimeException;
+use Stringable;
 
 class StderrLoggerTest extends TestCase
 {
     /** @var resource */
     private $stream;
-    /** @var StderrLogger */
-    private $logger;
+    private StderrLogger $logger;
 
     public function setUp(): void
     {
         parent::setUp();
 
-        $this->stream = fopen('php://memory', 'a+');
+        $stream = fopen('php://memory', 'a+');
+        if ($stream === false) {
+            throw new RuntimeException('Unable to open a memory stream');
+        }
+        $this->stream = $stream;
         $this->logger = new StderrLogger(LogLevel::DEBUG, $this->stream);
     }
 
-    public function test_log_messages_format()
+    public function test_log_messages_format(): void
     {
         $this->logger->debug('Debug');
         $this->logger->info('Info');
@@ -47,7 +53,7 @@ LOGS
         );
     }
 
-    public function test_logs_above_the_configured_log_level()
+    public function test_logs_above_the_configured_log_level(): void
     {
         $this->logger = new StderrLogger(LogLevel::WARNING, $this->stream);
         $this->logger->debug('Debug');
@@ -74,7 +80,7 @@ LOGS
      * @param mixed $contextValue
      */
     #[DataProvider('provideInterpolationExamples')]
-    public function test_log_messages_are_interpolated($contextValue, string $expectedMessage)
+    public function test_log_messages_are_interpolated($contextValue, string $expectedMessage): void
     {
         $this->logger->info('{foo}', [
             'foo' => $contextValue,
@@ -84,6 +90,9 @@ LOGS
         $this->assertStringStartsWith('INFO	' . $expectedMessage . '	', $logs);
     }
 
+    /**
+     * @return list<array{mixed, string}>
+     */
     public static function provideInterpolationExamples(): array
     {
         $date = new \DateTime;
@@ -103,7 +112,7 @@ LOGS
         ];
     }
 
-    public function test_logs_with_context()
+    public function test_logs_with_context(): void
     {
         $this->logger->info('Test message', ['key' => 'value']);
 
@@ -114,7 +123,7 @@ LOGS
         );
     }
 
-    public function test_multiline_message()
+    public function test_multiline_message(): void
     {
         $this->logger->error("Test\nmessage");
 
@@ -125,7 +134,7 @@ LOGS
         );
     }
 
-    public function test_with_exception()
+    public function test_with_exception(): void
     {
         $e = new \Exception('Test error');
         $this->logger->info('Test message', ['exception' => $e]);
@@ -136,7 +145,7 @@ LOGS
         $this->assertStringContainsString('"message":"Test error"', $logs);
     }
 
-    public function test_lines_start_with_the_lambda_request_id()
+    public function test_lines_start_with_the_lambda_request_id(): void
     {
         $_SERVER['LAMBDA_REQUEST_ID'] = '8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2';
         try {
@@ -152,15 +161,42 @@ LOGS
         );
     }
 
+    public function test_unsupported_log_levels_are_rejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->logger->log('warn', 'Test message');
+    }
+
+    public function test_stringable_messages_are_logged(): void
+    {
+        $this->logger->info(new class implements Stringable {
+            public function __toString(): string
+            {
+                return 'Test message';
+            }
+        });
+
+        $this->assertLogsMatch(<<<'LOGS'
+INFO	Test message	{"message":"Test message","level":"INFO"}
+
+LOGS
+        );
+    }
+
     private function assertLogsMatch(string $expectedLog): void
     {
-        rewind($this->stream);
-        self::assertStringMatchesFormat($expectedLog, fread($this->stream, fstat($this->stream)['size']));
+        self::assertStringMatchesFormat($expectedLog, $this->getLogs());
     }
 
     private function getLogs(): string
     {
         rewind($this->stream);
-        return stream_get_contents($this->stream);
+        $logs = stream_get_contents($this->stream);
+        if ($logs === false) {
+            throw new RuntimeException('Unable to read the logs');
+        }
+
+        return $logs;
     }
 }

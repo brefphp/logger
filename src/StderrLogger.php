@@ -3,7 +3,9 @@
 namespace Bref\Logger;
 
 use Psr\Log\AbstractLogger;
+use Psr\Log\InvalidArgumentException;
 use Psr\Log\LogLevel;
+use Stringable;
 use Throwable;
 
 /**
@@ -22,44 +24,39 @@ class StderrLogger extends AbstractLogger
         LogLevel::DEBUG => 1,
     ];
 
-    /** @var string */
-    private $logLevel;
-
-    /** @var string|null */
-    private $url;
-
-    /** @var resource|null */
+    /** @var resource|string The stream, or its URL until it is opened */
     private $stream;
 
     /**
      * @param string $logLevel The log level above which messages will be logged. Messages under this log level will be ignored.
      * @param resource|string $stream If unsure leave the default value.
      */
-    public function __construct(string $logLevel = LogLevel::INFO, $stream = 'php://stderr')
-    {
-        $this->logLevel = $logLevel;
-
-        if (is_resource($stream)) {
-            $this->stream = $stream;
-        } elseif (is_string($stream)) {
-            $this->url = $stream;
-        } else {
+    public function __construct(
+        private string $logLevel = LogLevel::INFO,
+        $stream = 'php://stderr',
+    ) {
+        if (! is_resource($stream) && ! is_string($stream)) {
             throw new \InvalidArgumentException('A stream must either be a resource or a string.');
         }
+        $this->stream = $stream;
     }
 
     /**
-     * {@inheritdoc}
+     * @param mixed $level
+     * @param string|Stringable $message
+     * @param array<mixed> $context
+     * @throws InvalidArgumentException If the log level is not one of the PSR-3 levels.
      */
     public function log($level, $message, array $context = []): void
     {
+        if (! is_string($level) || ! isset(self::LOG_LEVEL_MAP[$level])) {
+            throw new InvalidArgumentException('Unsupported log level: ' . var_export($level, true));
+        }
         if (self::LOG_LEVEL_MAP[$level] < self::LOG_LEVEL_MAP[$this->logLevel]) {
             return;
         }
 
-        $this->openStderr();
-
-        $message = $this->interpolate($message, $context);
+        $message = $this->interpolate((string) $message, $context);
 
         // Make sure everything is kept on one line to count as one record
         $displayMessage = str_replace(["\r\n", "\r", "\n"], ' ', $message);
@@ -89,41 +86,48 @@ class StderrLogger extends AbstractLogger
             $formattedMessage = "$requestId\t$formattedMessage";
         }
 
-        fwrite($this->stream, $formattedMessage);
+        fwrite($this->stream(), $formattedMessage);
     }
 
-    private function openStderr(): void
+    /**
+     * @return resource
+     */
+    private function stream()
     {
-        if ($this->stream !== null) {
-            return;
+        if (is_string($this->stream)) {
+            $stream = fopen($this->stream, 'a');
+            if ($stream === false) {
+                throw new \RuntimeException('Unable to open stream ' . $this->stream);
+            }
+            $this->stream = $stream;
         }
-        $this->stream = fopen($this->url, 'a');
-        if (! $this->stream) {
-            throw new \RuntimeException('Unable to open stream ' . $this->url);
-        }
+
+        return $this->stream;
     }
 
     /**
      * Interpolates context values into the message placeholders.
+     *
+     * @param array<mixed> $context
      */
     private function interpolate(string $message, array $context): string
     {
-        if (strpos($message, '{') === false) {
+        if (! str_contains($message, '{')) {
             return $message;
         }
 
         $replacements = [];
         foreach ($context as $key => $val) {
-            if ($val === null || is_scalar($val) || (\is_object($val) && method_exists($val, '__toString'))) {
-                $replacements["{{$key}}"] = $val;
+            if ($val === null || is_scalar($val) || $val instanceof Stringable) {
+                $replacements["{{$key}}"] = (string) $val;
             } elseif ($val instanceof \DateTimeInterface) {
                 $replacements["{{$key}}"] = $val->format(\DateTime::RFC3339);
             } elseif (\is_object($val)) {
-                $replacements["{{$key}}"] = '{object ' . \get_class($val) . '}';
+                $replacements["{{$key}}"] = '{object ' . $val::class . '}';
             } elseif (\is_resource($val)) {
                 $replacements["{{$key}}"] = '{resource}';
             } else {
-                $replacements["{{$key}}"] = json_encode($val);
+                $replacements["{{$key}}"] = (string) json_encode($val);
             }
         }
 
@@ -133,11 +137,9 @@ class StderrLogger extends AbstractLogger
     /**
      * Normalizes data for JSON serialization.
      *
-     * @param mixed $data
      * @param int $depth Current recursion depth
-     * @return mixed
      */
-    private function normalize($data, int $depth = 0)
+    private function normalize(mixed $data, int $depth = 0): mixed
     {
         $maxDepth = 9; // Similar to NormalizerFormatter's default
         $maxItems = 1000; // Similar to NormalizerFormatter's default
@@ -175,11 +177,11 @@ class StderrLogger extends AbstractLogger
                 return $data;
             }
 
-            if (method_exists($data, '__toString')) {
+            if ($data instanceof Stringable) {
                 return $data->__toString();
             }
 
-            if (get_class($data) === '__PHP_Incomplete_Class') {
+            if ($data instanceof \__PHP_Incomplete_Class) {
                 return new \ArrayObject($data);
             }
 
@@ -195,17 +197,19 @@ class StderrLogger extends AbstractLogger
 
     /**
      * Normalizes an exception for JSON serialization.
+     *
+     * @return array<string, mixed>
      */
     private function normalizeException(Throwable $e, int $depth = 0): array
     {
         $maxDepth = 9;
 
         if ($depth > $maxDepth) {
-            return ['class' => get_class($e), 'message' => 'Over ' . $maxDepth . ' levels deep, aborting normalization'];
+            return ['class' => $e::class, 'message' => 'Over ' . $maxDepth . ' levels deep, aborting normalization'];
         }
 
         $data = [
-            'class' => get_class($e),
+            'class' => $e::class,
             'message' => $e->getMessage(),
             'code' => $e->getCode(),
             'file' => $e->getFile() . ':' . $e->getLine(),
@@ -218,11 +222,8 @@ class StderrLogger extends AbstractLogger
         return $data;
     }
 
-    /**
-     * @param mixed $data
-     */
-    private function toJson($data): string
+    private function toJson(mixed $data): string
     {
-        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
+        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
     }
 }
