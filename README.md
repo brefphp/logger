@@ -43,6 +43,14 @@ ERROR	This is an error	{"message":"This is an error","level":"ERROR"}
 
 Messages under `info` are not logged.
 
+On AWS Lambda with Bref, each line starts with the request ID of the current invocation, like the logs of Lambda's native runtimes:
+
+```
+8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	INFO	This is an info	{"message":"This is an info","level":"INFO"}
+```
+
+CloudWatch Logs Insights reads it as the `@requestId` field, like in Lambda's `START`, `END` and `REPORT` lines: `filter @requestId = '8f507cfc-...'` shows all the logs of an invocation.
+
 ### Message placeholders
 
 [PSR-3 placeholders](https://www.php-fig.org/psr/psr-3/#12-message) can be used to insert information from the `$context` array into the message without having to concatenate strings manually:

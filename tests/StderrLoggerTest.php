@@ -136,6 +136,22 @@ LOGS
         $this->assertStringContainsString('"message":"Test error"', $logs);
     }
 
+    public function test_lines_start_with_the_lambda_request_id()
+    {
+        $_SERVER['LAMBDA_REQUEST_ID'] = '8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2';
+        try {
+            $this->logger->info('Test message');
+        } finally {
+            unset($_SERVER['LAMBDA_REQUEST_ID']);
+        }
+
+        $this->assertLogsMatch(<<<'LOGS'
+8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	INFO	Test message	{"message":"Test message","level":"INFO"}
+
+LOGS
+        );
+    }
+
     private function assertLogsMatch(string $expectedLog): void
     {
         rewind($this->stream);
