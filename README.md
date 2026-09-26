@@ -36,20 +36,14 @@ $logger->error('This is an error');
 ```
 
 ```
-INFO	This is an info	{"message":"This is an info","level":"INFO"}
-WARNING	This is a warning	{"message":"This is a warning","level":"WARNING"}
-ERROR	This is an error	{"message":"This is an error","level":"ERROR"}
+8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	INFO	This is an info	{"message":"This is an info","level":"INFO"}
+8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	WARNING	This is a warning	{"message":"This is a warning","level":"WARNING"}
+8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	ERROR	This is an error	{"message":"This is an error","level":"ERROR"}
 ```
+
+This follows the standard format used by official AWS Lambda runtimes. For example the initial request ID is recognized by CloudWatch so that `filter @requestId = '8f507cfc-...'` shows all the logs of a single request/invocation.
 
 Messages under `info` are not logged.
-
-On AWS Lambda with Bref, each line starts with the request ID of the current invocation, like the logs of Lambda's native runtimes:
-
-```
-8f507cfc-8b35-4e7e-9f26-f2a3a6e7e1a2	INFO	This is an info	{"message":"This is an info","level":"INFO"}
-```
-
-CloudWatch Logs Insights reads it as the `@requestId` field, like in Lambda's `START`, `END` and `REPORT` lines: `filter @requestId = '8f507cfc-...'` shows all the logs of an invocation.
 
 ### Message placeholders
 
