@@ -82,6 +82,13 @@ class StderrLogger extends AbstractLogger
 
         $formattedMessage = sprintf("%s\t%s\t%s\n", strtoupper($level), $displayMessage, $this->toJson($this->normalize($data)));
 
+        // Bref sets the ID of the current Lambda invocation. Lambda's own runtimes start their lines with it:
+        // CloudWatch Logs Insights reads it as `@requestId`, like in Lambda's START, END and REPORT lines.
+        $requestId = $_SERVER['LAMBDA_REQUEST_ID'] ?? null;
+        if (is_string($requestId) && $requestId !== '') {
+            $formattedMessage = "$requestId\t$formattedMessage";
+        }
+
         fwrite($this->stream, $formattedMessage);
     }
 
